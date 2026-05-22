@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberLocator - Advanced IP Geolocation & VPN Unmasking Tool</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Leaflet CSS for Maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="background-animation">
+        <div class="grid-overlay"></div>
+    </div>
+
+    <div class="container">
+        <header class="header">
+            <div class="logo">
+                <i class="fa-solid fa-radar-base fa-spin-pulse"></i>
+                <h1>CyberLocator <span>v2.0</span></h1>
+            </div>
+            <p class="subtitle">Advanced Threat Intelligence & IP Geolocation Platform</p>
+        </header>
+
+        <div class="search-section">
+            <div class="search-box">
+                <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                <input type="text" id="ipInput" placeholder="Enter suspicious IP address (e.g. 185.165.123.1)" autocomplete="off">
+                <button id="scanBtn" class="btn-scan">
+                    <i class="fa-solid fa-crosshairs"></i> Trace Location
+                </button>
+                <button id="exportBtn" class="btn-scan hidden" style="background: linear-gradient(45deg, rgba(0,255,170,0.2), rgba(0,204,255,0.2)); border-color: var(--primary-color); color: var(--text-main);">
+                    <i class="fa-solid fa-file-lines"></i> Export Report (TXT)
+                </button>
+            </div>
+            <div id="loadingIndicator" class="loading hidden">
+                <div class="cyber-spinner"></div>
+                <p>Establishing secure connection... Fetching target data...</p>
+            </div>
+            <div id="errorMessage" class="error-msg hidden"></div>
+        </div>
+
+        <div id="resultsSection" class="results-grid hidden">
+            <!-- Main Geolocation Card -->
+            <div class="card geo-card">
+                <div class="card-header">
+                    <i class="fa-solid fa-earth-americas"></i>
+                    <h2>Geolocation Data</h2>
+                </div>
+                <div class="card-content">
+                    <div class="data-row">
+                        <span class="label">IP Address</span>
+                        <span class="value highlight" id="resIp">-</span>
+                    </div>
+                    <div class="data-row">
+                        <span class="label">Country</span>
+                        <span class="value" id="resCountry">-</span>
+                    </div>
+                    <div class="data-row">
+                        <span class="label">Region/State</span>
+                        <span class="value" id="resRegion">-</span>
+                    </div>
+                    <div class="data-row">
+                        <span class="label">City</span>
+                        <span class="value" id="resCity">-</span>
+                    </div>
+                    <div class="data-row">
+                        <span class="label">Zip Code</span>
+                        <span class="value" id="resZip">-</span>
+                    </div>
+                    <div class="data-row">
+                        <span class="label">Coordinates</span>
+                        <span class="value" id="resCoords">-</span>
+                    </div>
+                    <div class="data-row">
+                        <span class="label">Timezone</span>
+                        <span class="value" id="resTimezone">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Network & ISP Card -->
+            <div class="card network-card">
+                <div class="card-header">
+                    <i class="fa-solid fa-network-wired"></i>
+                    <h2>Network Identity</h2>
+                </div>
+                <div class="card-content">
+                    <div class="data-row">
+                        <span class="label">ISP</span>
+                        <span class="value" id="resIsp">-</span>
+                    </div>
+                    <div class="data-row">
+                        <span class="label">Organization</span>
+                        <span class="value" id="resOrg">-</span>
+                    </div>
+                    <div class="data-row">
+                        <span class="label">ASN</span>
+                        <span class="value" id="resAsn">-</span>
+                    </div>
+                    <div class="data-row">
+                        <span class="label">AS Name</span>
+                        <span class="value" id="resAsName">-</span>
+                    </div>
+                    <div class="data-row">
+                        <span class="label">Connection Type</span>
+                        <span class="value" id="resMobile">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Threat Intel & VPN Status Card -->
+            <div class="card threat-card">
+                <div class="card-header">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    <h2>Threat Intelligence</h2>
+                </div>
+                <div class="card-content">
+                    <div class="status-banner" id="vpnStatusBanner">
+                        <i class="fa-solid fa-circle-check"></i> Clean IP
+                    </div>
+                    <div class="data-row">
+                        <span class="label">VPN / Proxy Detected</span>
+                        <span class="value badge" id="resProxy">-</span>
+                    </div>
+                    <div class="data-row">
+                        <span class="label">Datacenter / Hosting</span>
+                        <span class="value badge" id="resHosting">-</span>
+                    </div>
+                    <div class="data-row">
+                        <span class="label">Risk Level</span>
+                        <span class="value risk-score" id="resRisk">-</span>
+                    </div>
+                    
+                    <div class="analysis-box" id="analysisBox">
+                        <h4><i class="fa-solid fa-brain"></i> AI Analyst Note:</h4>
+                        <p id="aiAnalysisText">Awaiting scan...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Blacklist & OSINT Card -->
+            <div class="card osint-card">
+                <div class="card-header">
+                    <i class="fa-solid fa-bug-slash"></i>
+                    <h2>Abuse & OSINT Check</h2>
+                </div>
+                <div class="card-content">
+                    <div class="data-row">
+                        <span class="label">AbuseIPDB Status</span>
+                        <span class="value" id="resAbuse">Checking...</span>
+                    </div>
+                    <div class="data-row">
+                        <span class="label">VirusTotal Hits</span>
+                        <span class="value" id="resVt">Checking...</span>
+                    </div>
+                    <div class="osint-links" style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;">
+                        <a id="btnAbuseIPDB" href="#" target="_blank" class="osint-btn"><i class="fa-solid fa-magnifying-glass-chart"></i> View on AbuseIPDB</a>
+                        <a id="btnVirusTotal" href="#" target="_blank" class="osint-btn"><i class="fa-solid fa-virus"></i> View on VirusTotal</a>
+                        <a id="btnScamalytics" href="#" target="_blank" class="osint-btn"><i class="fa-solid fa-user-secret"></i> View on Scamalytics</a>
+                        <a id="btnShodan" href="#" target="_blank" class="osint-btn" style="border-color: #ff3366; color: #ff3366;"><i class="fa-solid fa-satellite-dish"></i> Search on Shodan (IoT)</a>
+                        <a id="btnCensys" href="#" target="_blank" class="osint-btn" style="border-color: #00ccff; color: #00ccff;"><i class="fa-solid fa-server"></i> Search on Censys</a>
+                    </div>
+                    <div class="analysis-box" style="margin-top: 15px; border-left-color: var(--warning-color);">
+                        <h4 style="color: var(--warning-color);"><i class="fa-solid fa-database"></i> OSINT Analysis:</h4>
+                        <p id="osintAnalysisText">Click the deep links above to verify this IP against global cybercrime databases in real-time.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Map View Card -->
+            <div class="card map-card">
+                <div class="card-header">
+                    <i class="fa-solid fa-map-location-dot"></i>
+                    <h2>Tactical Map</h2>
+                </div>
+                <div class="card-content map-container">
+                    <div id="map"></div>
+                    <div class="map-overlay">
+                        <span class="blinking-dot"></span> Signal Locked
+                    </div>
+                </div>
+            </div>
+
+            <!-- WHOIS Card -->
+            <div class="card whois-card" style="grid-column: span 1;">
+                <div class="card-header">
+                    <i class="fa-solid fa-address-card"></i>
+                    <h2>WHOIS Registration Data</h2>
+                </div>
+                <div class="card-content">
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 10px;">
+                        Identifying the legal owner, organization, and abuse contact for this IP block.
+                    </p>
+                    <div id="whoisContent" class="terminal-box" style="white-space: pre-wrap; font-size: 0.8rem; max-height: 300px; overflow-y: auto;">
+                        Awaiting scan...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Traceroute Card -->
+            <div class="card trace-card" style="grid-column: span 1;">
+                <div class="card-header">
+                    <i class="fa-solid fa-route"></i>
+                    <h2>Network Path Analyzer (MTR)</h2>
+                </div>
+                <div class="card-content">
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 10px;">
+                        Tracing the hop-by-hop packet route to identify upstream ISPs and network gateways.
+                    </p>
+                    <div id="tracerouteContent" class="terminal-box">
+                        Awaiting scan...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
