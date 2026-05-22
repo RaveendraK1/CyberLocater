@@ -61,4 +61,4 @@ When you scan an IP, CyberLocator doesn't just show data; it provides an automat
 *This tool is intended for legal and authorized use by cyber security researchers, SOC analysts, and law enforcement agencies. Do not use this tool for malicious purposes. The developer assumes no liability for the misuse of the data provided.*
 
 ---
-**Maintained with ❤️ by [Your Name/Handle]**
+**Maintained with ❤️ by Raveendra kasaudhan**
