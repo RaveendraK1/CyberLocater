@@ -229,24 +229,29 @@ function populateData(data, ip) {
         resHosting.className = 'value badge safe';
     }
 
-    // Risk Assessment
+    // Risk Assessment (banner uses quick local heuristic; detailed note comes from Mesh AI below)
     if (isProxy || isHosting) {
         vpnStatusBanner.innerHTML = '<i class="fa-solid fa-user-ninja"></i> Anonymization Detected';
         vpnStatusBanner.className = 'status-banner danger';
         resRisk.innerText = 'HIGH';
         resRisk.className = 'value risk-score high';
-        
-        let analysis = `Subject IP is routing through a commercial Datacenter/VPN node (${data.isp || data.org}). The true geographical location of the suspect is masked. `;
-        analysis += `However, analyzing the timezone (${data.timezone}) and coordinating with ISP logs for ASN ${isIpApi ? data.as : data.asn} can reveal the originating packet source. Submit a lawful interception request to the ISP.`;
-        aiAnalysisText.innerText = analysis;
     } else {
         vpnStatusBanner.innerHTML = '<i class="fa-solid fa-circle-check"></i> Clean Residential IP';
         vpnStatusBanner.className = 'status-banner';
         resRisk.innerText = 'LOW';
         resRisk.className = 'value risk-score low';
-
-        aiAnalysisText.innerText = `IP belongs to a standard residential/mobile ISP (${data.isp || data.org}). The geolocation provided (Radius: ~5-10km around ${data.city}) is highly likely to be the physical location of the subject. Proceed with local law enforcement coordination.`;
     }
+
+    // AI Analyst Note — powered by Mesh API
+    generateAiAnalystNote({
+        ip: isIpApi ? data.query : data.ip,
+        country: isIpApi ? data.country : data.country_name,
+        isp: data.isp || data.org || 'Unknown',
+        asn: (isIpApi ? data.as : data.asn) || 'Unknown',
+        timezone: data.timezone,
+        isProxy: isProxy,
+        isHosting: isHosting
+    });
 
     // OSINT & Blacklist Update
     const currentIp = isIpApi ? data.query : data.ip;
@@ -311,6 +316,52 @@ function populateData(data, ip) {
         .catch(error => {
             whoisContent.innerText = "Error executing WHOIS lookup: " + error.message;
         });
+}
+
+// AI Analyst Note — powered by Mesh API (https://api.meshapi.ai)
+let currentIpDataForAi = null;
+
+async function generateAiAnalystNote(ipData, lang = 'en') {
+    const aiAnalysisText = document.getElementById('aiAnalysisText');
+    currentIpDataForAi = ipData;
+
+    aiAnalysisText.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Analyzing threat data via Mesh AI...';
+
+    try {
+        const response = await fetch('/api/analyze', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...ipData, lang })
+        });
+
+        const result = await response.json();
+
+        if (!result.success) {
+            aiAnalysisText.innerText = `AI analysis unavailable: ${result.error}`;
+            return;
+        }
+
+        const { riskSummary, keyFlags, recommendedAction } = result.data;
+
+        aiAnalysisText.innerHTML = `
+            ${riskSummary}
+            <ul style="margin-top:8px;">
+                ${keyFlags.map(f => `<li>${f}</li>`).join('')}
+            </ul>
+            <strong>Recommended action:</strong> ${recommendedAction}
+            <br><br>
+            <button id="aiLangToggle" style="cursor:pointer;">
+                ${lang === 'en' ? 'हिंदी में समझाएं' : 'Explain in English'}
+            </button>
+        `;
+
+        document.getElementById('aiLangToggle').addEventListener('click', () => {
+            generateAiAnalystNote(currentIpDataForAi, lang === 'en' ? 'hi' : 'en');
+        });
+
+    } catch (error) {
+        aiAnalysisText.innerText = `Failed to reach AI analysis server: ${error.message}`;
+    }
 }
 
 function showError(msg) {
