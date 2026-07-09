@@ -34,6 +34,8 @@ function initMap(lat, lon, zoomLevel) {
     }
 }
 
+
+
 // Elements
 const ipInput = document.getElementById('ipInput');
 const scanBtn = document.getElementById('scanBtn');
